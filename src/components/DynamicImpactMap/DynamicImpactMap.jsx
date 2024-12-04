@@ -11,7 +11,8 @@ const HQ_COORDINATES = [-118.2437, 34.0522]; // Example HQ: Los Angeles, CA
 const RESULT_LIMIT = 300;
 
 const DynamicImpactMap = () => {
-  const [engagementData, setEngagementData] = useState([]);
+  const [rawEngagementData, setRawEngagementData] = useState([]); // All interactions
+  const [aggregatedEngagementData, setAggregatedEngagementData] = useState([]); // Unique by state
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -37,11 +38,16 @@ const DynamicImpactMap = () => {
     return `M${x1},${y1} Q${midX},${midY} ${x2},${y2}`;
   };
 
-  /**
-   * Fetches interaction data from the API starting from page 1 up to the latest known total pages.
-   * Merges new data with existing state and removes duplicates.
-   * Works with the recurring task to capture updates or new interactions every 60 seconds.
-   */
+  const aggregateDataByState = (data) => {
+    const aggregated = data.reduce((acc, interaction) => {
+      if (!acc[interaction.state]) {
+        acc[interaction.state] = interaction;
+      }
+      return acc;
+    }, {});
+    return Object.values(aggregated);
+  };
+
   const fetchData = async () => {
     try {
       let allData = [];
@@ -54,13 +60,16 @@ const DynamicImpactMap = () => {
         currentPage += 1;
       } while (currentPage <= totalPages);
 
+      // Merge and deduplicate all interactions
       const mergedData = [
         ...new Map(
-          [...engagementData, ...allData].map((item) => [item.id, item])
+          [...rawEngagementData, ...allData].map((item) => [item.id, item])
         ).values(),
       ];
 
-      setEngagementData(mergedData);
+      
+      setRawEngagementData(mergedData); 
+      setAggregatedEngagementData(aggregateDataByState(mergedData)); // Unique by state
       setError(null);
     } catch (err) {
       console.error('Error fetching engagement data:', err);
@@ -76,84 +85,84 @@ const DynamicImpactMap = () => {
 
   return (
     <div className="dynamic-impact-card">
-    {/* Header Section */}
-    <div className="map-header">
-      <img 
-        src={PASTOR_IMAGE}
-        alt="Pastor" 
-        className="pastor-image" 
-      />
-      <div>
-        <h3>Pope Francis <span className="info-icon">ⓘ</span></h3>
+      {/* Header Section */}
+      <div className="map-header">
+        <img 
+          src={PASTOR_IMAGE}
+          alt="Pastor" 
+          className="pastor-image" 
+        />
+        <div>
+          <h3>Pope Francis <span className="info-icon">ⓘ</span></h3>
+        </div>
       </div>
-    </div>
 
-    {/* Map Section */}
-    <div className="map-wrapper">
-      <ComposableMap
-        projection="geoAlbersUsa"
-        projectionConfig={{ scale: 1000, translate: [400, 300] }}
-        className="responsive-map"
-      >
-        <Geographies geography={US_MAP_TOPOJSON}>
-          {({ geographies }) =>
-            geographies.map((geo) => (
-              <Geography
-                key={geo.rsmKey}
-                geography={geo}
+      {/* Map Section */}
+      <div className="map-wrapper">
+        <ComposableMap
+          projection="geoAlbersUsa"
+          projectionConfig={{ scale: 1000, translate: [400, 300] }}
+          className="responsive-map"
+        >
+          <Geographies geography={US_MAP_TOPOJSON}>
+            {({ geographies }) =>
+              geographies.map((geo) => (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  style={{
+                    default: { fill: '#F0EAD6', stroke: '#D6D6D6', strokeWidth: 0.75 },
+                    hover: { fill: '#D8CAB9' },
+                    pressed: { fill: '#F4D3C3' },
+                  }}
+                />
+              ))
+            }
+          </Geographies>
+          {aggregatedEngagementData.map((event) => (
+            <React.Fragment key={event.id}>
+              <path
+                d={createCurvePath(HQ_COORDINATES, event.coordinates)}
+                stroke="#FFA500"
+                strokeWidth={1.5}
+                fill="none"
+                strokeLinecap="round"
+              />
+              <PulsingDot coordinates={event.coordinates} />
+            </React.Fragment>
+          ))}
+          <Marker coordinates={HQ_COORDINATES}>
+            <foreignObject x={-25} y={-25} width={50} height={50}>
+              <img
+                src={PASTOR_IMAGE}
+                alt="HQ Pastor"
                 style={{
-                  default: { fill: '#F0EAD6', stroke: '#D6D6D6', strokeWidth: 0.75 },
-                  hover: { fill: '#D8CAB9' },
-                  pressed: { fill: '#F4D3C3' },
+                  borderRadius: '50%',
+                  width: '60%',
+                  height: '60%',
+                  border: '2px solid #FFD700',
                 }}
               />
-            ))
-          }
-        </Geographies>
-        {engagementData.map((event) => (
-          <React.Fragment key={event.id}>
-            <path
-              d={createCurvePath(HQ_COORDINATES, event.coordinates)}
-              stroke="#FFA500"
-              strokeWidth={1.5}
-              fill="none"
-              strokeLinecap="round"
-            />
-            <PulsingDot coordinates={event.coordinates} />
-          </React.Fragment>
-        ))}
-        <Marker coordinates={HQ_COORDINATES}>
-          <foreignObject x={-25} y={-25} width={50} height={50}>
-            <img
-              src={PASTOR_IMAGE}
-              alt="HQ Pastor"
-              style={{
-                borderRadius: '50%',
-                width: '60%',
-                height: '60%',
-                border: '2px solid #FFD700',
-              }}
-            />
-          </foreignObject>
-        </Marker>
-      </ComposableMap>
-    </div>
-
-    {/* Total Reach */}
-    <div className="total-reach">
-      {error ? (
-        <p className="error-message">{error}</p>
-      ) : (
-        <div>
-          <span className="total-reach-label">Total Reach</span>
-          <span className="total-reach-number">
-            {engagementData.length.toLocaleString()}
-          </span>
+            </foreignObject>
+          </Marker>
+        </ComposableMap>
       </div>
-      )}
+
+      {/* Total Reach */}
+      <div className="total-reach">
+        {error ? (
+          <p className="error-message">{error}</p>
+        ) : (
+          <div>
+            <span className="total-reach-label">Total Reach</span>
+            <span className="total-reach-number">
+              {rawEngagementData.length.toLocaleString()}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
   );
 };
 
-export default DynamicImpactMap
+export default DynamicImpactMap;

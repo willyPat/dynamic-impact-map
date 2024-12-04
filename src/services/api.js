@@ -1,6 +1,6 @@
 export const fetchEngagementData = async (page = 1, limit = 50) => {
   try {
-    const response = await fetch(`/api/pastors/123/interactions?page=${page}&limit=${limit}`); // Use relative path
+    const response = await fetch(`/api/pastors/123/interactions?page=${page}&limit=${limit}`);
     if (!response.ok) {
       throw new Error('Failed to fetch engagement data');
     }

@@ -13,12 +13,11 @@ const RESULT_LIMIT = 300;
 const DynamicImpactMap = () => {
   const [engagementData, setEngagementData] = useState([]);
   const [error, setError] = useState(null);
-
+  const [totalPages, setTotalPages] = useState(1);
 
   const projection = geoAlbersUsa()
     .scale(1000) 
     .translate([400, 300]);
-
 
   const createCurvePath = (from, to) => {
     const projectedFrom = projection(from);
@@ -38,19 +37,37 @@ const DynamicImpactMap = () => {
     return `M${x1},${y1} Q${midX},${midY} ${x2},${y2}`;
   };
 
-
+  /**
+   * Fetches interaction data from the API starting from page 1 up to the latest known total pages.
+   * Merges new data with existing state and removes duplicates.
+   * Works with the recurring task to capture updates or new interactions every 60 seconds.
+   */
   const fetchData = async () => {
     try {
-      const data = await fetchEngagementData(1, RESULT_LIMIT); 
-      setEngagementData(data.data); 
-      setError(null); 
+      let allData = [];
+      let currentPage = 1;
+
+      do {
+        const response = await fetchEngagementData(currentPage, RESULT_LIMIT);
+        allData = allData.concat(response.data); 
+        setTotalPages(Math.ceil(response.total / RESULT_LIMIT)); 
+        currentPage += 1;
+      } while (currentPage <= totalPages);
+
+      const mergedData = [
+        ...new Map(
+          [...engagementData, ...allData].map((item) => [item.id, item])
+        ).values(),
+      ];
+
+      setEngagementData(mergedData);
+      setError(null);
     } catch (err) {
       console.error('Error fetching engagement data:', err);
       setError('Failed to load engagement data.');
     }
   };
 
-  // Poll for new data every 60 seconds
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 60000);

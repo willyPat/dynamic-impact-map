@@ -1,0 +1,73 @@
+.dynamic-impact-card {
+  position: relative;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  width: 50%;
+  margin: 1%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.map-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.pastor-image {
+  width: 60px; 
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid #FFD700; 
+}
+
+
+.info-icon {
+  font-size: 24px;
+  color: gray;
+  margin-left: 5px;
+}
+
+
+.map-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+
+.responsive-map {
+  width: 100%;
+  height: 100%;
+}
+
+
+.total-reach {
+  position: absolute; 
+  bottom: 30px;
+  left: 80px;
+  text-align: left; 
+  margin: 0; 
+}
+
+.total-reach-label {
+  font-size: 14px; 
+  font-weight: normal;
+  display: block; 
+  color: #6b7280;
+}
+
+.total-reach-number {
+  font-size: 32px;
+  font-weight: bold;
+  color: #000; 
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+}
